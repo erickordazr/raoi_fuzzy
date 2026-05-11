@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.npy
+results_micai/
+*.mp4
+*.png
+.venv/
+.env
