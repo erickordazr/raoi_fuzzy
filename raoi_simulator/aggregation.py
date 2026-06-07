@@ -59,7 +59,6 @@ from raoi_simulator.fuzzy_influence import (
     compute_distance_norm,
     compute_wi,
 )
-import config_ext as cfg
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -215,7 +214,7 @@ def _detect_nearest_stimulus(
     best_dist    = math.inf
     best_angle   = 0.0
     best_idx     = -1
-    best_r_s     = cfg.DEFAULT_STIMULUS_RADIUS
+    best_r_s     = config.DEFAULT_STIMULUS_RADIUS
     n_detected   = 0
 
     for k, stim in enumerate(stimuli):
@@ -223,7 +222,7 @@ def _detect_nearest_stimulus(
         dy       = stim["y"] - robot_pos[1]
         distance = math.sqrt(dx**2 + dy**2)
         angle    = wrap_angle(math.atan2(dy, dx))
-        r_s      = float(stim.get("r", cfg.DEFAULT_STIMULUS_RADIUS))
+        r_s      = float(stim.get("r", config.DEFAULT_STIMULUS_RADIUS))
 
         beta   = wrap_angle(angle - robot_theta)
         gamma  = wrap_angle(robot_theta - angle)
@@ -241,7 +240,7 @@ def _detect_nearest_stimulus(
                 best_r_s   = r_s
 
     if best_idx == -1:
-        return 0.0, 0.0, 1.0, 0, -1, 0, influence_radius + cfg.DEFAULT_STIMULUS_RADIUS
+        return 0.0, 0.0, 1.0, 0, -1, 0, influence_radius + config.DEFAULT_STIMULUS_RADIUS
 
     effective_range = influence_radius + best_r_s
     noise           = np.random.normal(0.0, config.INFLUENCE_NOISE_AMP)
@@ -279,7 +278,7 @@ def run(
         a_r:               Radio de atracción (m), sumado a ROBOT_BODY_RADIUS.
         i_r:               Radio de detección de estímulos (m).
         stimuli:           Lista de dicts {'x', 'y'} con las fuentes de influencia.
-                           None → usa cfg.STIMULI.
+                           None → usa config.STIMULI.
         obstacles:         Lista de dicts {'x', 'y', 'r'} con obstáculos circulares.
                            None → sin obstáculos.
         use_fuzzy:         True: w_I calculado por robot con lógica difusa.
@@ -312,7 +311,7 @@ def run(
     r_influence   = i_r
 
     if stimuli is None:
-        stimuli = cfg.STIMULI
+        stimuli = config.STIMULI
     if obstacles is None:
         obstacles = []
     n_stimuli = len(stimuli)
@@ -714,16 +713,16 @@ def _ask_stimuli(area: float) -> list:
 
     if modo == 1:
         print(f"\n    Escenarios predefinidos (área {area}×{area} m):")
-        for k, s in cfg.STIMULI_SCENARIOS.items():
+        for k, s in config.STIMULI_SCENARIOS.items():
             coords = "  |  ".join(f"({st['x']},{st['y']})" for st in s)
             print(f"      {k} estímulo(s): {coords}")
         n = max(1, min(4, _ask_int("Número de estímulos (1–4)", 1)))
-        return cfg.STIMULI_SCENARIOS[n]
+        return config.STIMULI_SCENARIOS[n]
 
     if modo == 2:
         n      = max(1, _ask_int("Número de estímulos", 2))
         margin = area * 0.1
-        r_s    = max(0.1, _ask_float("radio de intensidad r_s para todos (m)", cfg.DEFAULT_STIMULUS_RADIUS))
+        r_s    = max(0.1, _ask_float("radio de intensidad r_s para todos (m)", config.DEFAULT_STIMULUS_RADIUS))
         result = []
         for k in range(n):
             x = round(random.uniform(margin, area - margin), 2)
@@ -739,7 +738,7 @@ def _ask_stimuli(area: float) -> list:
         print(f"\n    Estímulo {k+1}:")
         x   = float(np.clip(_ask_float("x", round(area * 0.75, 1)), 0, area))
         y   = float(np.clip(_ask_float("y", round(area * 0.75, 1)), 0, area))
-        r_s = max(0.1, _ask_float("radio de intensidad r_s (m)", cfg.DEFAULT_STIMULUS_RADIUS))
+        r_s = max(0.1, _ask_float("radio de intensidad r_s (m)", config.DEFAULT_STIMULUS_RADIUS))
         result.append({"x": x, "y": y, "r": r_s})
     return result
 
@@ -781,7 +780,7 @@ def _ask_obstacles(area: float) -> list:
 
     if modo == 2:
         print("\n    Escenarios disponibles:")
-        for key, obs_list in cfg.OBSTACLES_SCENARIOS.items():
+        for key, obs_list in config.OBSTACLES_SCENARIOS.items():
             if key == "none":
                 continue
             desc = "  |  ".join(f"({o['x']},{o['y']}) r={o['r']}" for o in obs_list)
@@ -789,8 +788,8 @@ def _ask_obstacles(area: float) -> list:
         while True:
             raw = (input("  Escenario [low/medium/high, default medium]: ").strip().lower()
                    or "medium")
-            if raw in cfg.OBSTACLES_SCENARIOS and raw != "none":
-                return cfg.OBSTACLES_SCENARIOS[raw]
+            if raw in config.OBSTACLES_SCENARIOS and raw != "none":
+                return config.OBSTACLES_SCENARIOS[raw]
             print("    Elige low, medium o high.")
 
     if modo == 3:
@@ -872,12 +871,12 @@ def single_run(
     print("╚══════════════════════════════════════════════════╝")
 
     print("\n  ── Parámetros de simulación ─────────────────────────────────")
-    iters  = iterations  if iterations  is not None else _ask_int("Iteraciones",  cfg.DEFAULT_ITERATIONS)
-    indivs = individuals if individuals is not None else _ask_int("Individuos",   cfg.DEFAULT_INDIVIDUALS)
+    iters  = iterations  if iterations  is not None else _ask_int("Iteraciones",  config.DEFAULT_ITERATIONS)
+    indivs = individuals if individuals is not None else _ask_int("Individuos",   config.DEFAULT_INDIVIDUALS)
     rr = r_r if r_r is not None else _ask_float("r_r — radio de repulsión (m)",   config.RAOI_RADII["r_repulsion"])
     ro = o_r if o_r is not None else _ask_float("r_o — radio de orientación (m)", config.RAOI_RADII["r_orientation"])
     ra = a_r if a_r is not None else _ask_float("r_a — radio de atracción (m)",   config.RAOI_RADII["r_attraction"])
-    ri = i_r if i_r is not None else _ask_float("i_r — radio de influencia (m)",  cfg.DEFAULT_INFLUENCE_RADIUS)
+    ri = i_r if i_r is not None else _ask_float("i_r — radio de influencia (m)",  config.DEFAULT_INFLUENCE_RADIUS)
 
     stims = stimuli   if stimuli   is not None else _ask_stimuli(area)
 
@@ -1013,12 +1012,12 @@ def statistical_run(
     print(f"  Réplicas: {replicas}")
 
     print("\n  ── Parámetros de simulación ─────────────────────────────────")
-    iters  = iterations  if iterations  is not None else _ask_int("Iteraciones",  cfg.DEFAULT_ITERATIONS)
-    indivs = individuals if individuals is not None else _ask_int("Individuos",   cfg.DEFAULT_INDIVIDUALS)
+    iters  = iterations  if iterations  is not None else _ask_int("Iteraciones",  config.DEFAULT_ITERATIONS)
+    indivs = individuals if individuals is not None else _ask_int("Individuos",   config.DEFAULT_INDIVIDUALS)
     rr = r_r if r_r is not None else _ask_float("r_r — radio de repulsión (m)",   config.RAOI_RADII["r_repulsion"])
     ro = o_r if o_r is not None else _ask_float("r_o — radio de orientación (m)", config.RAOI_RADII["r_orientation"])
     ra = a_r if a_r is not None else _ask_float("r_a — radio de atracción (m)",   config.RAOI_RADII["r_attraction"])
-    ri = i_r if i_r is not None else _ask_float("i_r — radio de influencia (m)",  cfg.DEFAULT_INFLUENCE_RADIUS)
+    ri = i_r if i_r is not None else _ask_float("i_r — radio de influencia (m)",  config.DEFAULT_INFLUENCE_RADIUS)
 
     stims = stimuli   if stimuli   is not None else _ask_stimuli(area)
     fuz   = use_fuzzy if use_fuzzy is not None else _ask_yn("¿Activar w_I difuso?", True)
@@ -1028,11 +1027,12 @@ def statistical_run(
     input("  Presiona Enter para iniciar...")
 
     all_results = []
+    all_reports = []      # reportes completos para la figura de fragmentación temporal
     t0   = time.time()
     pbar = tqdm(total=replicas, desc="Réplicas", unit="rep", ncols=80)
 
     for rep in range(replicas):
-        _, _, m = run(
+        report, _, m = run(
             iterations=iters, individuals=indivs,
             r_r=rr, o_r=ro, a_r=ra, i_r=ri,
             stimuli=stims, obstacles=obs,
@@ -1040,6 +1040,7 @@ def statistical_run(
             seed=config.SEED + rep,
         )
         all_results.append(m)
+        all_reports.append(report)
         pbar.set_postfix(rep=rep + 1)
         pbar.update(1)
 
@@ -1111,5 +1112,13 @@ def statistical_run(
         csv_path, npy_path = _save_statistical_run(result_dict, results_dir)
         result_dict["csv_path"] = csv_path
         result_dict["npy_path"] = npy_path
+
+    # ── Gráficas estadísticas ──────────────────────────────────────────────────
+    # Import local para evitar dependencia circular si plots.py importara
+    # algún módulo del simulador en el futuro.
+    from .plots import generate_all
+    figures_dir = os.path.join(results_dir, "figures")
+    result_dict["figures_dir"] = figures_dir
+    generate_all(result_dict, all_reports, output_dir=figures_dir)
 
     return result_dict

@@ -240,7 +240,6 @@ def physical_convergence_time_per_stimulus(
         sx  = float(stim["x"])
         sy  = float(stim["y"])
         r_s = float(stim.get("r", 1.0))
-        pct = np.array([stim_pos for stim_pos in [np.array([sx, sy])]])[0]
         found = T
 
         for t in range(1, T):   # t=0 excluido: estado inicial, no convergencia
@@ -489,6 +488,8 @@ def first_arrival(
     Diferente de convergence_time: convergence_time mide cuándo el porcentaje
     umbral del enjambre detecta el estímulo (entra a r_I + r_s). first_arrival
     mide cuándo el primer robot pisa físicamente el cuerpo del estímulo (entra a r_s).
+    El estado inicial t=0 se excluye — se considera que el robot llegó al estímulo
+    solo si se movió hacia él durante la simulación.
 
     Args:
         report:  Estado del enjambre, shape (T, N, ≥2).
@@ -500,7 +501,7 @@ def first_arrival(
     T, N, _ = report.shape
     arrivals = [T] * len(stimuli)
 
-    for t in range(T):
+    for t in range(1, T):   # t=0 excluido: estado inicial, no movimiento
         for k, stim in enumerate(stimuli):
             if arrivals[k] < T:
                 continue
