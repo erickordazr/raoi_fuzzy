@@ -8,8 +8,11 @@ y devuelven escalares, arrays o diccionarios. No dependen del estado interno
 del simulador y pueden usarse desde cualquier script de análisis externo.
 
 Métricas de convergencia:
-  convergence_time          — iteración en que el enjambre localiza el estímulo.
+  convergence_time              — iteración en que el enjambre detecta el estímulo
+                                  (rango r_I + r_s). Excluye t=0 (estado inicial).
   convergence_time_per_stimulus — convergence_time calculado por estímulo individual.
+  physical_convergence_time     — iteración en que el porcentaje umbral del enjambre
+                                  llega físicamente al cuerpo del estímulo (rango r_s).
 
 Métricas de cohesión y fragmentación:
   cohesion_mean             — distancia media al centroide, promediada en el tiempo.
@@ -158,7 +161,7 @@ def convergence_time(
     iterations, n_robots, _ = report.shape
     inf_pos = np.array(influence_position)
 
-    for t in range(iterations):
+    for t in range(1, iterations):   # t=0 excluido: es el estado inicial, no convergencia
         distances = np.linalg.norm(report[t, :, :2] - inf_pos, axis=1)
         if np.sum(distances < influence_radius) / n_robots >= threshold:
             return t
@@ -196,6 +199,96 @@ def convergence_time_per_stimulus(
         )
         for s in stimuli
     ]
+
+
+
+def physical_convergence_time_per_stimulus(
+    report:    np.ndarray,
+    stimuli:   list,
+    threshold: float = config.LOCALIZATION_THRESHOLD,
+) -> list:
+    """
+    Iteración en que una fracción del enjambre llega físicamente a cada estímulo.
+
+    A diferencia de convergence_time (que usa el rango de detección r_I + r_s),
+    esta métrica usa únicamente r_s como radio de referencia. Mide cuándo
+    el enjambre no solo detecta el estímulo sino que llega a su cuerpo físico.
+
+    Es la versión porcentual de first_arrival: mientras first_arrival registra
+    cuándo llega el primer robot (1/N), physical_convergence_time registra
+    cuándo llega la fracción 'threshold' del enjambre.
+
+    Ejemplos de interpretación con threshold=0.5:
+      - physical_convergence_time[k] = 80 → en la iteración 80 la mitad del
+        enjambre estaba dentro del radio r_s del estímulo k.
+      - physical_convergence_time[k] = T  → menos de la mitad del enjambre
+        llegó físicamente al estímulo durante la simulación.
+
+    Args:
+        report:    Estado del enjambre, shape (T, N, ≥2).
+        stimuli:   Lista de dicts {'x', 'y', 'r'}.
+        threshold: Fracción mínima del enjambre requerida ∈ (0, 1].
+                   Default: config.LOCALIZATION_THRESHOLD.
+
+    Returns:
+        Lista de enteros, uno por estímulo. T si el umbral no se alcanzó.
+    """
+    T, N, _ = report.shape
+    results  = []
+
+    for stim in stimuli:
+        sx  = float(stim["x"])
+        sy  = float(stim["y"])
+        r_s = float(stim.get("r", 1.0))
+        pct = np.array([stim_pos for stim_pos in [np.array([sx, sy])]])[0]
+        found = T
+
+        for t in range(1, T):   # t=0 excluido: estado inicial, no convergencia
+            distances = np.linalg.norm(report[t, :, :2] - np.array([sx, sy]), axis=1)
+            if np.sum(distances < r_s) / N >= threshold:
+                found = t
+                break
+
+        results.append(found)
+
+    return results
+
+def physical_convergence_time(
+    report:    np.ndarray,
+    stimuli:   list,
+    threshold: float = config.LOCALIZATION_THRESHOLD,
+) -> int:
+    """
+    Iteración en que la fracción 'threshold' del enjambre completo logró
+    llegar físicamente a *cualquier* estímulo del escenario (unión de estados).
+
+    Args:
+        report:    Estado del enjambre, shape (T, N, ≥2).
+        stimuli:   Lista de dicts {'x', 'y', 'r'}.
+        threshold: Fracción mínima del enjambre requerida.
+
+    Returns:
+        Iteración de convergencia global ∈ [0, T]. T si nunca se alcanzó.
+    """
+    T, N, _ = report.shape
+
+    for t in range(1, T):   # t=0 excluido
+        robots_at_any_stim = 0
+        for i in range(N):
+            px = float(report[t, i, 0])
+            py = float(report[t, i, 1])
+            in_any = any(
+                math.sqrt((px - float(s["x"]))**2 + (py - float(s["y"]))**2)
+                < float(s.get("r", 1.0))
+                for s in stimuli
+            )
+            if in_any:
+                robots_at_any_stim += 1
+
+        if robots_at_any_stim / N >= threshold:
+            return t
+
+    return T
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -609,8 +702,10 @@ def compute_all(
         Dict con las siguientes claves:
 
         Convergencia:
-          'convergence_time'               : int — iteración de localización global.
-          'convergence_time_per_stimulus'  : list[int] — por estímulo.
+          'convergence_time'               : int — iteración de detección global (rango r_I+r_s).
+          'convergence_time_per_stimulus'  : list[int] — detección por estímulo.
+          "physical_convergence_time"                   : int — iteración de detección global (rango r_s), 
+          'physical_convergence_time_per_stimulus'      : list[int] — llegada física al cuerpo del estímulo (rango r_s).
 
         Cohesión y fragmentación:
           'cohesion_mean'                  : float (m).
@@ -662,6 +757,8 @@ def compute_all(
         # Convergencia
         "convergence_time":              ct,
         "convergence_time_per_stimulus": convergence_time_per_stimulus(report, stimuli, i_r),
+        "physical_convergence_time":     physical_convergence_time(report, stimuli),
+        "physical_convergence_time_per_stimulus": physical_convergence_time_per_stimulus(report, stimuli),
         # Cohesión y fragmentación
         "cohesion_mean":                 float(np.mean(cohs)),
         "cohesion_final":                float(cohs[-1]),

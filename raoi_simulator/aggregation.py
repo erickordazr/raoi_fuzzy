@@ -552,21 +552,25 @@ def _save_single_run(
     with open(csv_path, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["n_stimuli", "n_obstacles", "use_fuzzy",
-                    "convergence_time", "cohesion_mean", "cohesion_final",
+                    "convergence_time", "physical_convergence_time", 
+                    "cohesion_mean", "cohesion_final",
                     "fragmentation_mean", "fragmentation_final",
                     "distribution_entropy",
                     "dwell_count", "stimulus_occupancy",
-                    "first_arrival", "mean_robots_at_stimulus",
+                    "first_arrival", "physical_convergence_time_per_stimulus", 
+                    "mean_robots_at_stimulus",
                     "transit_fraction", "obstacle_interaction_rate"])
         w.writerow([
             len(stimuli), len(obstacles), int(use_fuzzy),
             g.get("convergence_time", ""),
+            g.get("physical_convergence_time", ""),
             g.get("cohesion_mean", ""), g.get("cohesion_final", ""),
             g.get("fragmentation_mean", ""), g.get("fragmentation_final", ""),
             g.get("distribution_entropy", ""),
             str(g.get("dwell_count", "")),
             str(g.get("stimulus_occupancy", "")),
             str(g.get("first_arrival", "")),
+            g.get("physical_convergence_time_per_stimulus", ""),
             str(g.get("mean_robots_at_stimulus", "")),
             g.get("transit_fraction", ""),
             g.get("obstacle_interaction_rate", ""),
@@ -606,11 +610,13 @@ def _save_statistical_run(
     with open(csv_path, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["replica", "n_stimuli", "n_obstacles", "use_fuzzy",
-                    "convergence_time", "cohesion_mean", "cohesion_final",
+                    "convergence_time", "physical_convergence_time", 
+                    "cohesion_mean", "cohesion_final",
                     "fragmentation_mean", "fragmentation_final",
                     "distribution_entropy",
                     "dwell_count", "stimulus_occupancy",
-                    "first_arrival", "mean_robots_at_stimulus",
+                    "first_arrival", "physical_convergence_time_per_stimulus", 
+                    "mean_robots_at_stimulus",
                     "transit_fraction", "obstacle_interaction_rate"])
         for rep, m in enumerate(result_dict["all"]):
             g = m
@@ -619,12 +625,14 @@ def _save_statistical_run(
                 len(cfg_used["stimuli"]), len(cfg_used["obstacles"]),
                 int(cfg_used["use_fuzzy"]),
                 g.get("convergence_time", ""),
+                g.get("physical_convergence_time", ""),
                 g.get("cohesion_mean", ""), g.get("cohesion_final", ""),
                 g.get("fragmentation_mean", ""), g.get("fragmentation_final", ""),
                 g.get("distribution_entropy", ""),
                 str(g.get("dwell_count", "")),
                 str(g.get("stimulus_occupancy", "")),
                 str(g.get("first_arrival", "")),
+                str(g.get("physical_convergence_time_per_stimulus", "")),
                 str(g.get("mean_robots_at_stimulus", "")),
                 g.get("transit_fraction", ""),
                 g.get("obstacle_interaction_rate", ""),
@@ -921,6 +929,7 @@ def single_run(
     g = metrics_out
     print(f"\n    Convergencia:")
     print(f"      convergence_time         : {g.get('convergence_time','—')} iter")
+    print(f"      physical_convergence_time: {g.get('physical_convergence_time','—')} iter")
     print(f"\n    Cohesión y fragmentación:")
     print(f"      cohesion_mean            : {g.get('cohesion_mean',0):.4f} m")
     print(f"      cohesion_final           : {g.get('cohesion_final',0):.4f} m")
@@ -945,6 +954,13 @@ def single_run(
             ct_k = ct_per[k] if k < len(ct_per) else "—"
             print(f"      [{k+1}] ({stims[k]['x']},{stims[k]['y']}): "
                   f"convergence_time={ct_k}")
+
+        ct_per = g.get("physical_convergence_time_per_stimulus", [])
+        print(f"\n    Convergencia por estímulo (física):")
+        for k in range(len(stims)):
+            ct_k = ct_per[k] if k < len(ct_per) else "—"
+            print(f"      [{k+1}] ({stims[k]['x']},{stims[k]['y']}): "
+                  f"physical_convergence_time={ct_k}")
 
     if do_save:
         _save_single_run(report, data, metrics_out, stims, obs, fuz)
@@ -1032,7 +1048,8 @@ def statistical_run(
 
     # ── Métricas escalares: promedio y desviación directos ──────────────────
     scalar_keys = [
-        "convergence_time", "cohesion_mean", "cohesion_final",
+        "convergence_time", "physical_convergence_time", 
+        "cohesion_mean", "cohesion_final",
         "fragmentation_mean", "fragmentation_final",
         "distribution_entropy", "transit_fraction",
     ]
@@ -1050,7 +1067,7 @@ def statistical_run(
     list_keys = [
         "convergence_time_per_stimulus", "robots_per_stimulus",
         "dwell_count", "stimulus_occupancy", "first_arrival",
-        "mean_robots_at_stimulus",
+        "physical_convergence_time_per_stimulus", "mean_robots_at_stimulus",
     ]
     mean_lists: dict = {}
     std_lists:  dict = {}
