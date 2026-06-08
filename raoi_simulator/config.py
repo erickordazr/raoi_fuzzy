@@ -58,7 +58,7 @@ ROBOT_BODY_RADIUS: float = 0.075
 """Radio físico del robot (m). Corresponde al Khepera III / e-puck."""
 
 RAOI_RADII: dict = {
-    "r_repulsion":   0.075,
+    "r_repulsion":   0.3,
     "r_orientation": 1.0,
     "r_attraction":  2.0,
 }
@@ -567,7 +567,7 @@ STIMULI_SCENARIOS: dict = {
     3: [
         {"x": 2.5, "y": 7.5, "r": 1.0},
         {"x": 7.5, "y": 7.5, "r": 1.0},
-        {"x": 5.0, "y": 2.5, "r": 1.0},
+        {"x": 7.5, "y": 2.5, "r": 1.0},
     ],
     4: [
         {"x": 2.5, "y": 7.5, "r": 1.0},
