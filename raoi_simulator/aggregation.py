@@ -581,6 +581,27 @@ def _save_single_run(
     print(f"    {csv_path}")
     return report_path, config_path, csv_path
 
+def _next_experiment_dir(base_dir: str = "results") -> str:
+    """
+    Devuelve la ruta de la siguiente carpeta de experimento dentro de base_dir.
+
+    Busca subcarpetas con nombre numérico (1, 2, 3, ...) y devuelve
+    base_dir/<N+1>, donde N es el máximo encontrado. Si no hay ninguna,
+    devuelve base_dir/1.
+
+    Args:
+        base_dir: Carpeta raíz de resultados (p. ej. "results").
+
+    Returns:
+        Ruta de la nueva carpeta de experimento (aún no creada).
+    """
+    os.makedirs(base_dir, exist_ok=True)
+    existing = [
+        int(d) for d in os.listdir(base_dir)
+        if os.path.isdir(os.path.join(base_dir, d)) and d.isdigit()
+    ]
+    next_n = max(existing, default=0) + 1
+    return os.path.join(base_dir, str(next_n))
 
 def _save_statistical_run(
     result_dict: dict,
@@ -1004,12 +1025,16 @@ def statistical_run(
           'csv_path' : ruta del CSV (si save_results=True).
           'npy_path' : ruta del npy (si save_results=True).
     """
+    # Determinar carpeta de experimento numerada (results/1, results/2, ...)
+    results_dir = _next_experiment_dir(results_dir)  # <-- NUEVO
+
     area = config.AREA_LIMITS
 
     print("\n╔══════════════════════════════════════════════════╗")
     print("║    RAOI Swarm Simulator — Corrida estadística    ║")
     print("╚══════════════════════════════════════════════════╝")
     print(f"  Réplicas: {replicas}")
+    print(f"  Experimento: {results_dir}")  # <-- NUEVO
 
     print("\n  ── Parámetros de simulación ─────────────────────────────────")
     iters  = iterations  if iterations  is not None else _ask_int("Iteraciones",  config.DEFAULT_ITERATIONS)
