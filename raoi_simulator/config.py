@@ -201,7 +201,7 @@ Rompe la inercia de la última dirección activa sin redirigir bruscamente.
 
 # ── Métricas ──────────────────────────────────────────────────────────────────
 
-LOCALIZATION_THRESHOLD: float = 0.6
+LOCALIZATION_THRESHOLD: float = 0.4
 """
 Fracción mínima del enjambre que debe estar dentro del radio de influencia
 para considerar la tarea de localización completada (f1).
