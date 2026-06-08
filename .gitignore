@@ -5,4 +5,5 @@ results_micai/
 *.mp4
 *.png
 .venv/
+venv/
 .env
